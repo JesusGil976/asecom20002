@@ -1,0 +1,17 @@
+node_modules/
+.env
+data/*.sqlite
+data/*.sqlite-*
+data/uploads/private/*
+!data/uploads/private/.gitkeep
+public/uploads/*
+!public/uploads/.gitkeep
+!public/uploads/certificates/
+public/uploads/certificates/*
+!public/uploads/certificates/demo-front.png
+!public/uploads/certificates/demo-back.png
+npm-debug.log*
+.DS_Store
+
+!public/uploads/certificates/default-front.png
+!public/uploads/certificates/default-back.png
