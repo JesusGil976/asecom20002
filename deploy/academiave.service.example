@@ -1,0 +1,17 @@
+[Unit]
+Description=AcademiaVE
+After=network.target
+[Service]
+User=academiave
+Group=academiave
+WorkingDirectory=/srv/academiave
+EnvironmentFile=/etc/academiave.env
+ExecStart=/usr/bin/node /srv/academiave/server.js
+Restart=on-failure
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/academiave
+[Install]
+WantedBy=multi-user.target
