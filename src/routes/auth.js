@@ -148,8 +148,11 @@ function createAuthRoutes({ db, auth, audit }) {
         db.prepare("DELETE FROM password_reset_tokens WHERE token_hash=?").run(
           tokenHash,
         );
-        require("../utils/logger").error("password_reset_delivery_failed", {
+               require("../utils/logger").error("password_reset_delivery_failed", {
           requestId: req.id,
+          code: error.code || null,
+          responseCode: error.responseCode || null,
+          syscall: error.syscall || null,
         });
       }
       audit.write({
