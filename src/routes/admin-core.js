@@ -53,6 +53,42 @@ function createAdminCoreRoutes({
     });
   });
 
+router.get("/sales", (req, res) => {
+  const periods = {
+    "7d": "-7 days",
+    "30d": "-30 days",
+    "365d": "-365 days",
+    all: null
+  };
+
+  const period = Object.hasOwn(periods, req.query.period)
+    ? req.query.period
+    : "30d";
+
+  const modifier = periods[period];
+
+  const dateFilter = modifier
+    ? " AND COALESCE(p.approved_at, p.created_at) >= datetime('now', ?)"
+    : "";
+
+  const courses = db.prepare(`
+    SELECT
+      c.id,
+      c.name,
+      COUNT(p.id) AS sales,
+      ROUND(COALESCE(SUM(p.amount_usd), 0), 2) AS revenue
+    FROM courses c
+    LEFT JOIN payments p
+      ON p.course_id = c.id
+      AND p.status = 'approved'
+      ${dateFilter}
+    GROUP BY c.id, c.name
+    ORDER BY sales DESC, revenue DESC, c.name COLLATE NOCASE
+  `).all(...(modifier ? [modifier] : []));
+
+  res.json({ period, courses });
+});
+
   router.get("/payments", (req, res) => {
     const status = ["pending", "approved", "rejected"].includes(
       req.query.status,
