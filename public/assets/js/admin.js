@@ -9,6 +9,7 @@ import { esc, money, date, toast, loading, badge, progress } from "./ui.js";
 const main = () => document.querySelector("#main");
 const adminItems = [
   ["resumen", "Resumen"],
+  ["ventas", "Estadísticas de ventas"],
   ["usuarios", "Usuarios"],
   ["pagos", "Pagos"],
   ["cursos", "Cursos y clases"],
@@ -90,6 +91,7 @@ export async function adminView(section = "resumen") {
   }
   try {
     if (section === "resumen") await overview();
+    else if (section === "ventas") await sales();
     else if (section === "usuarios") await users();
     else if (section === "pagos") await payments();
     else if (section === "cursos") await courses();
@@ -118,6 +120,143 @@ async function overview() {
     "Resumen",
   );
 }
+
+
+async function sales(period = "30d") {
+  shell("ventas", loading(), "Estadísticas de ventas");
+
+  const { courses: rows } = await api(
+    `/api/admin/sales?period=${encodeURIComponent(period)}`
+  );
+
+  const totalSales = rows.reduce(
+    (sum, r) => sum + Number(r.sales), 0
+  );
+  const totalRevenue = rows.reduce(
+    (sum, r) => sum + Number(r.revenue), 0
+  );
+  const noSales = rows.filter(
+    (r) => Number(r.sales) === 0
+  ).length;
+
+  const most = rows.filter((r) => r.sales > 0).slice(0, 7);
+
+  const least = [...rows]
+    .sort((a, b) =>
+      a.sales - b.sales || a.name.localeCompare(b.name, "es")
+    )
+    .slice(0, 7);
+
+  const byRevenue = [...rows]
+    .sort((a, b) => b.revenue - a.revenue)
+    .slice(0, 7);
+
+  const chart = (title, data, key, format) => {
+    const max = Math.max(1, ...data.map((r) => Number(r[key])));
+
+    return `<section class="panel sales-panel">
+      <h2>${esc(title)}</h2>
+      ${data.length ? data.map((r) => {
+        const width = Math.max(
+          0, Math.min(100, (Number(r[key]) / max) * 100)
+        );
+
+        return `<div class="sales-bar">
+          <span class="sales-bar__name" title="${esc(r.name)}">
+            ${esc(r.name)}
+          </span>
+          <span class="sales-bar__track">
+            <span class="sales-bar__fill"
+              style="width:${width.toFixed(2)}%">
+            </span>
+          </span>
+          <strong>${esc(String(format(r[key])))}</strong>
+        </div>`;
+      }).join("") :
+        '<p class="muted">No hay datos para este período.</p>'}
+    </section>`;
+  };
+
+  shell("ventas", `
+    <div class="sales-toolbar">
+      <label for="sales-period">Período</label>
+      <select id="sales-period">
+        <option value="7d" ${period === "7d" ? "selected" : ""}>
+          Últimos 7 días
+        </option>
+        <option value="30d" ${period === "30d" ? "selected" : ""}>
+          Últimos 30 días
+        </option>
+        <option value="365d" ${period === "365d" ? "selected" : ""}>
+          Últimos 365 días
+        </option>
+        <option value="all" ${period === "all" ? "selected" : ""}>
+          Todo el historial
+        </option>
+      </select>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi">
+        <span class="muted">Ingresos aprobados</span>
+        <strong>${money(totalRevenue)}</strong>
+      </div>
+      <div class="kpi">
+        <span class="muted">Ventas aprobadas</span>
+        <strong>${totalSales}</strong>
+      </div>
+      <div class="kpi">
+        <span class="muted">Ingreso medio por venta</span>
+        <strong>${money(totalSales ? totalRevenue / totalSales : 0)}</strong>
+      </div>
+      <div class="kpi">
+        <span class="muted">Cursos sin ventas</span>
+        <strong>${noSales}</strong>
+      </div>
+    </div>
+
+    <div class="sales-panels">
+      ${chart("Más vendidos", most, "sales",
+        (n) => `${n} ventas`)}
+      ${chart("Ingresos por curso (USD)", byRevenue, "revenue",
+        (n) => money(n))}
+      ${chart("Menos vendidos (incluye cero)", least, "sales",
+        (n) => `${n} ventas`)}
+    </div>
+
+    <section class="panel sales-table">
+      <h2>Detalle de todos los cursos</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Curso</th>
+              <th>Ventas aprobadas</th>
+              <th>Ingresos USD</th>
+              <th>% de ingresos</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map((r) => `<tr>
+              <td>${esc(r.name)}</td>
+              <td>${Number(r.sales)}</td>
+              <td>${money(r.revenue)}</td>
+              <td>${totalRevenue
+                ? (100 * Number(r.revenue) / totalRevenue).toFixed(1)
+                : "0.0"}%</td>
+            </tr>`).join("") ||
+              '<tr><td colspan="4">Todavía no hay cursos.</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  `, "Estadísticas de ventas");
+
+  document.querySelector("#sales-period")
+    .addEventListener("change", (e) => sales(e.target.value));
+}
+
+
 async function users() {
   shell("usuarios", loading(), "Usuarios");
   const { users } = await api("/api/admin/users");
