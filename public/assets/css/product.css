@@ -812,3 +812,89 @@ table td {
 .lesson-row .cluster { flex-wrap:wrap; }
 @media(max-width:600px) { .lesson-row { flex-wrap:wrap; } .lesson-row > div { min-width:0; } .player-tools { align-items:flex-start; } }
 .native-player .classroom-player { position:relative; margin-bottom:0; }
+
+
+/* AcademiaVE - Dashboard de ventas */
+
+.sales-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.sales-toolbar select {
+  min-width: 180px;
+}
+
+.sales-panels {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  margin: 24px 0;
+}
+
+.sales-panel {
+  min-width: 0;
+}
+
+.sales-panel h2,
+.sales-table h2 {
+  font-size: 1.1rem;
+  margin-bottom: 20px;
+}
+
+.sales-bar {
+  display: grid;
+  grid-template-columns: minmax(90px, 150px) minmax(40px, 1fr) 85px;
+  gap: 12px;
+  align-items: center;
+  margin: 16px 0;
+}
+
+.sales-bar__name {
+  font-size: .85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sales-bar__track {
+  display: block;
+  height: 12px;
+  background: var(--surface-muted);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.sales-bar__fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--primary);
+  transition: width .35s ease;
+}
+
+.sales-bar strong {
+  font-size: .8rem;
+  text-align: right;
+}
+
+.sales-table {
+  margin-top: 24px;
+}
+
+@media (max-width: 1000px) {
+  .sales-panels {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .sales-bar {
+    grid-template-columns: 90px minmax(30px, 1fr) 70px;
+    gap: 7px;
+  }
+}
+
