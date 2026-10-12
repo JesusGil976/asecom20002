@@ -78,7 +78,15 @@ export function normalizeVideo(url) {
       ["vimeo.com", "www.vimeo.com", "player.vimeo.com"].includes(u.hostname)
     ) {
       const match = u.pathname.match(/(?:^\/|\/video\/)(\d+)(?:\/|$)/);
-      if (match) return `https://player.vimeo.com/video/${match[1]}`;
+      if (match) {
+        const embed = new URL(`https://player.vimeo.com/video/${match[1]}`);
+        const pathHash = u.pathname.match(/^\/(\d+)\/([a-zA-Z0-9]+)\/?$/)?.[2];
+        const privacyHash = u.searchParams.get("h") || pathHash;
+        if (privacyHash && /^[a-zA-Z0-9]+$/.test(privacyHash)) {
+          embed.searchParams.set("h", privacyHash);
+        }
+        return embed.toString();
+      }
     }
   } catch {}
   return "";
