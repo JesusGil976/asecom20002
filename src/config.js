@@ -92,10 +92,26 @@ function assertProductionConfig() {
       "ADMIN_PASSWORD debe configurarse con una contraseña fuerte en producción.",
     );
   }
-  const requiredMail = ["MAIL_HOST", "MAIL_USER", "MAIL_PASSWORD"];
-  if (requiredMail.some((name) => !String(process.env[name] || "").trim())) {
-    throw new Error("Falta configurar MAIL_HOST, MAIL_USER y MAIL_PASSWORD.");
-  }
+
+const hasSmtp = [
+  "MAIL_HOST",
+  "MAIL_USER",
+  "MAIL_PASSWORD"
+].every((name) =>
+  Boolean(String(process.env[name] || "").trim())
+);
+
+const hasGoogleScript =
+  /^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(
+    String(process.env.MAIL_SCRIPT_URL || "").trim()
+  ) &&
+  String(process.env.MAIL_SCRIPT_SECRET || "").length >= 32;
+
+if (!hasSmtp && !hasGoogleScript) {
+  throw new Error(
+    "Configura SMTP o Google Apps Script para enviar correos."
+  );
+}
 }
 
 module.exports = { config, assertProductionConfig };
