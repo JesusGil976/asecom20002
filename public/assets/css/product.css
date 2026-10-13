@@ -897,4 +897,28 @@ table td {
     gap: 7px;
   }
 }
+/* Tamaño del logo de ASECOM en el encabezado */
+.site-header .brand {
+  gap: 12px;
+  flex-shrink: 0;
+}
 
+.site-header .brand img {
+  width: 64px;
+  height: 56px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.site-header .brand > span:last-child {
+  font-size: 18px;
+  font-weight: 750;
+}
+
+/* Ajuste para teléfonos */
+@media (max-width: 640px) {
+  .site-header .brand img {
+    width: 54px;
+    height: 48px;
+  }
+}
