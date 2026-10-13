@@ -28,24 +28,87 @@ function passwordResetMessage({ name, resetUrl, academyName = "AcademiaVE" }) {
   };
 }
 
-async function sendPasswordResetEmail({ to, name, resetUrl, academyName }) {
-  const mailer = getTransporter();
-  if (!mailer) {
-    if (process.env.NODE_ENV === "production")
-      throw new Error("Servicio de correo no configurado.");
-    console.log(
-      JSON.stringify({
-        level: "warn",
-        event: "password_reset_mail_skipped",
-        to,
-      }),
+
+async function sendPasswordResetEmail({
+  to,
+  name,
+  resetUrl,
+  academyName
+}) {
+  const message = passwordResetMessage({
+    name,
+    resetUrl,
+    academyName
+  });
+
+  // Nuevo método: Google Apps Script por HTTPS
+  if (process.env.MAIL_SCRIPT_URL) {
+    const secret = process.env.MAIL_SCRIPT_SECRET;
+
+    if (!secret || secret.length < 32) {
+      throw new Error("MAIL_SCRIPT_SECRET no configurado");
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(
+      () => controller.abort(),
+      15000
     );
+
+    try {
+      const response = await fetch(
+        process.env.MAIL_SCRIPT_URL,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            secret,
+            to,
+            ...message
+          }),
+          signal: controller.signal
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("HTTP_MAIL_" + response.status);
+      }
+
+      const result = await response.json();
+
+      if (result.ok !== true) {
+        throw new Error(
+          "MAIL_SCRIPT_" + (result.error || "UNKNOWN")
+        );
+      }
+
+      return;
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  // Método SMTP anterior, conservado
+  const mailer = getTransporter();
+
+  if (!mailer) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("Servicio de correo no configurado.");
+    }
+    console.log(JSON.stringify({
+      level: "warn",
+      event: "password_reset_mail_skipped",
+      to
+    }));
     return;
   }
+
   await mailer.sendMail({
     from: process.env.MAIL_FROM || process.env.MAIL_USER,
     to,
-    ...passwordResetMessage({ name, resetUrl, academyName }),
+    ...message
   });
 }
 
