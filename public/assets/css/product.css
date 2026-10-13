@@ -922,3 +922,17 @@ table td {
     height: 48px;
   }
 }
+
+/* Mostrar completa la imagen de portada */
+.hero .hero-media:has(> img) {
+  min-height: 0;
+  align-self: center;
+}
+
+.hero .hero-media > img {
+  display: block;
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  object-fit: contain;
+}
