@@ -936,3 +936,27 @@ table td {
   min-height: 0;
   object-fit: contain;
 }
+
+@media (max-width: 820px) {
+  .hero .hero-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .hero .hero-media:has(> img) {
+    width: 100%;
+    max-width: 100%;
+    height: auto !important;
+    min-height: 0 !important;
+    aspect-ratio: auto;
+  }
+
+  .hero .hero-media > img {
+    display: block;
+    width: 100% !important;
+    max-width: 100%;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none;
+    object-fit: contain !important;
+  }
+}
