@@ -1,4 +1,6 @@
 const path = require("path");
+const fs = require("fs");
+const { escapeHtml } = require("./utils/text");
 const express = require("express");
 const session = require("express-session");
 const helmet = require("helmet");
@@ -77,7 +79,7 @@ function createApp() {
     objectSrc: ["'none'"],
     baseUri: ["'self'"],
     formAction: ["'self'"],
-    frameAncestors: ["'none'"],
+    frameAncestors: ["'self'"],
   };
   if (config.nodeEnv === "production")
     cspDirectives.upgradeInsecureRequests = [];
@@ -175,6 +177,33 @@ function createApp() {
       },
     }),
   );
+  // Course metadata must also be present before JavaScript runs.
+  const pageTemplate = fs.readFileSync(
+    path.join(config.publicDir, "index.html"),
+    "utf8",
+  );
+  app.get("/curso/:slug", (req, res, next) => {
+    const course = courses.getBySlug(req.params.slug);
+    if (!course || course.status !== "published") return next();
+    const title = escapeHtml(
+      course.seo_title ||
+        `${course.name} | ${settings.get("academy_name") || "AcademiaVE"}`,
+    );
+    const description = escapeHtml(
+      course.seo_description || course.description || "",
+    );
+    res.setHeader("Cache-Control", "no-cache");
+    res
+      .type("html")
+      .send(
+        pageTemplate
+          .replace(/<title>[^<]*<\/title>/, () => `<title>${title}</title>`)
+          .replace(
+            /<meta name="description" content="[^"]*">/,
+            () => `<meta name="description" content="${description}">`,
+          ),
+      );
+  });
   app.get("/{*splat}", (req, res, next) => {
     if (req.path.startsWith("/api/")) return next();
     res.setHeader("Cache-Control", "no-cache");
