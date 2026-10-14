@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Vista previa del CMS</title>
+    <link rel="stylesheet" href="/assets/css/cms-preview.css" />
+  </head>
+  <body>
+    <header>
+      <strong>Vista previa del borrador</strong
+      ><label
+        >Pantalla
+        <select id="device">
+          <option value="100%">Escritorio adaptable</option>
+          <option value="1440px">Escritorio 1440 px</option>
+          <option value="768px">Tablet 768 px</option>
+          <option value="390px">Móvil 390 px</option>
+          <option value="360px">Móvil 360 px</option>
+        </select></label
+      ><button id="refresh">Actualizar</button
+      ><a href="/admin/cms">Volver al editor</a>
+    </header>
+    <main>
+      <iframe
+        id="preview"
+        src="/?preview=1"
+        title="Página de inicio en borrador"
+      ></iframe>
+    </main>
+    <script type="module" src="/assets/js/cms-preview.js"></script>
+  </body>
+</html>
