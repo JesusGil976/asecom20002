@@ -209,6 +209,10 @@ p {
   color: var(--primary);
   background: color-mix(in srgb, var(--primary) 8%, var(--surface));
 }
+#main section[id] {
+  scroll-margin-top: calc(var(--header-h) + 16px);
+}
+
 .site-header {
   height: var(--header-h);
   position: sticky;
