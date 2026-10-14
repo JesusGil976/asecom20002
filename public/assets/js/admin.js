@@ -1,3 +1,4 @@
+import { mountCms } from "./cms-editor.js";
 import { uploadVideo } from "./video-upload.js";
 import { videoMarkup, mountPlayers } from "./video-player.js";
 import { api } from "./api.js";
@@ -121,47 +122,40 @@ async function overview() {
   );
 }
 
-
 async function sales(period = "30d") {
   shell("ventas", loading(), "Estadísticas de ventas");
 
   const { courses: rows } = await api(
-    `/api/admin/sales?period=${encodeURIComponent(period)}`
+    `/api/admin/sales?period=${encodeURIComponent(period)}`,
   );
 
-  const totalSales = rows.reduce(
-    (sum, r) => sum + Number(r.sales), 0
-  );
-  const totalRevenue = rows.reduce(
-    (sum, r) => sum + Number(r.revenue), 0
-  );
-  const noSales = rows.filter(
-    (r) => Number(r.sales) === 0
-  ).length;
+  const totalSales = rows.reduce((sum, r) => sum + Number(r.sales), 0);
+  const totalRevenue = rows.reduce((sum, r) => sum + Number(r.revenue), 0);
+  const noSales = rows.filter((r) => Number(r.sales) === 0).length;
 
   const most = rows.filter((r) => r.sales > 0).slice(0, 7);
 
   const least = [...rows]
-    .sort((a, b) =>
-      a.sales - b.sales || a.name.localeCompare(b.name, "es")
-    )
+    .sort((a, b) => a.sales - b.sales || a.name.localeCompare(b.name, "es"))
     .slice(0, 7);
 
-  const byRevenue = [...rows]
-    .sort((a, b) => b.revenue - a.revenue)
-    .slice(0, 7);
+  const byRevenue = [...rows].sort((a, b) => b.revenue - a.revenue).slice(0, 7);
 
   const chart = (title, data, key, format) => {
     const max = Math.max(1, ...data.map((r) => Number(r[key])));
 
     return `<section class="panel sales-panel">
       <h2>${esc(title)}</h2>
-      ${data.length ? data.map((r) => {
-        const width = Math.max(
-          0, Math.min(100, (Number(r[key]) / max) * 100)
-        );
+      ${
+        data.length
+          ? data
+              .map((r) => {
+                const width = Math.max(
+                  0,
+                  Math.min(100, (Number(r[key]) / max) * 100),
+                );
 
-        return `<div class="sales-bar">
+                return `<div class="sales-bar">
           <span class="sales-bar__name" title="${esc(r.name)}">
             ${esc(r.name)}
           </span>
@@ -172,12 +166,16 @@ async function sales(period = "30d") {
           </span>
           <strong>${esc(String(format(r[key])))}</strong>
         </div>`;
-      }).join("") :
-        '<p class="muted">No hay datos para este período.</p>'}
+              })
+              .join("")
+          : '<p class="muted">No hay datos para este período.</p>'
+      }
     </section>`;
   };
 
-  shell("ventas", `
+  shell(
+    "ventas",
+    `
     <div class="sales-toolbar">
       <label for="sales-period">Período</label>
       <select id="sales-period">
@@ -216,12 +214,16 @@ async function sales(period = "30d") {
     </div>
 
     <div class="sales-panels">
-      ${chart("Más vendidos", most, "sales",
-        (n) => `${n} ventas`)}
-      ${chart("Ingresos por curso (USD)", byRevenue, "revenue",
-        (n) => money(n))}
-      ${chart("Menos vendidos (incluye cero)", least, "sales",
-        (n) => `${n} ventas`)}
+      ${chart("Más vendidos", most, "sales", (n) => `${n} ventas`)}
+      ${chart("Ingresos por curso (USD)", byRevenue, "revenue", (n) =>
+        money(n),
+      )}
+      ${chart(
+        "Menos vendidos (incluye cero)",
+        least,
+        "sales",
+        (n) => `${n} ventas`,
+      )}
     </div>
 
     <section class="panel sales-table">
@@ -237,25 +239,35 @@ async function sales(period = "30d") {
             </tr>
           </thead>
           <tbody>
-            ${rows.map((r) => `<tr>
+            ${
+              rows
+                .map(
+                  (r) => `<tr>
               <td>${esc(r.name)}</td>
               <td>${Number(r.sales)}</td>
               <td>${money(r.revenue)}</td>
-              <td>${totalRevenue
-                ? (100 * Number(r.revenue) / totalRevenue).toFixed(1)
-                : "0.0"}%</td>
-            </tr>`).join("") ||
-              '<tr><td colspan="4">Todavía no hay cursos.</td></tr>'}
+              <td>${
+                totalRevenue
+                  ? ((100 * Number(r.revenue)) / totalRevenue).toFixed(1)
+                  : "0.0"
+              }%</td>
+            </tr>`,
+                )
+                .join("") ||
+              '<tr><td colspan="4">Todavía no hay cursos.</td></tr>'
+            }
           </tbody>
         </table>
       </div>
     </section>
-  `, "Estadísticas de ventas");
+  `,
+    "Estadísticas de ventas",
+  );
 
-  document.querySelector("#sales-period")
+  document
+    .querySelector("#sales-period")
     .addEventListener("change", (e) => sales(e.target.value));
 }
-
 
 async function users() {
   shell("usuarios", loading(), "Usuarios");
@@ -682,194 +694,14 @@ async function lessonEditor(courseId, lesson = {}) {
 }
 
 async function cms() {
-  shell("cms", loading(), "Páginas / CMS");
-  const { courses: previewCourses } = await api("/api/courses");
-  let data = await api("/api/admin/cms/home");
-  if (!data.version || data.version.status !== "draft")
-    data = await api("/api/admin/cms/home/draft", { method: "POST", body: {} });
-  let sections = data.sections.map((s) => ({
-    ...s,
-    settings: { ...(s.settings || {}) },
-  }));
-  let selected = 0;
-  const render = () => {
-    shell(
-      "cms",
-      `<div class="toolbar"><button id="cms-add" class="btn btn--secondary">Añadir sección</button><button id="cms-preview" class="btn btn--secondary">Vista previa</button><button id="cms-save" class="btn">Guardar borrador</button><button id="cms-publish" class="btn">Publicar</button><span id="cms-status" class="muted" role="status">Borrador de trabajo</span></div><div class="cms-editor"><div class="cms-list" id="cms-list">${sections.map((s, i) => `<article class="cms-block ${i === selected ? "surface" : ""}" draggable="true" data-index="${i}"><div class="cms-block__handle" aria-hidden="true">⋮⋮</div><div class="cms-block__body"><strong>${esc(sectionLabel(s.section_type))}</strong><div class="muted">${esc(s.variant)} · ${s.enabled ? "Visible" : "Oculta"}</div></div><div class="cms-order"><button type="button" class="icon-btn" data-move="${i}" data-direction="-1" aria-label="Subir sección" ${i === 0 ? "disabled" : ""}>↑</button><button type="button" class="icon-btn" data-move="${i}" data-direction="1" aria-label="Bajar sección" ${i === sections.length - 1 ? "disabled" : ""}>↓</button></div><button class="btn btn--small btn--secondary" data-select="${i}">Editar</button><button class="btn btn--small btn--danger" data-remove="${i}" aria-label="Eliminar">×</button></article>`).join("")}</div><aside class="cms-inspector panel">${sections[selected] ? inspector(sections[selected]) : '<p class="muted">Selecciona una sección.</p>'}</aside><section class="cms-live-preview panel"><div class="split"><div><div class="eyebrow">Vista de sección</div><h2>Así se verá</h2></div><span class="badge">Sin publicar</span></div><div id="cms-section-preview" class="cms-preview-canvas" inert></div><small class="muted">Referencia visual de la sección. La vista previa completa permite comprobar todos los anchos.</small></section></div>`,
-      "CMS de Inicio",
-    );
-    bind();
-    updatePreview();
-  };
-  const bind = () => {
-    document.querySelectorAll("[data-move]").forEach(
-      (b) =>
-        (b.onclick = () => {
-          const from = Number(b.dataset.move),
-            to = from + Number(b.dataset.direction);
-          const [item] = sections.splice(from, 1);
-          sections.splice(to, 0, item);
-          selected = to;
-          render();
-        }),
-    );
-    document.querySelectorAll("[data-select]").forEach(
-      (b) =>
-        (b.onclick = () => {
-          selected = Number(b.dataset.select);
-          render();
-        }),
-    );
-    document.querySelectorAll("[data-remove]").forEach(
-      (b) =>
-        (b.onclick = () => {
-          sections.splice(Number(b.dataset.remove), 1);
-          selected = Math.max(0, Math.min(selected, sections.length - 1));
-          render();
-        }),
-    );
-    document.querySelector("#cms-add").onclick = () => addSection();
-    document.querySelector("#cms-save").onclick = () =>
-      save().catch((err) => toast(err.message, "error"));
-    document.querySelector("#cms-publish").onclick = publish;
-    document.querySelector("#cms-preview").onclick = preview;
-    bindInspector();
-    bindDrag();
-  };
-  const updatePreview = () => {
-    const preview = document.querySelector("#cms-section-preview");
-    if (!preview) return;
-    preview.innerHTML = sections[selected]
-      ? renderSection(sections[selected], previewCourses)
-      : '<p class="muted">Añade una sección para empezar.</p>';
-  };
-  const bindInspector = () => {
-    const form = document.querySelector("#cms-inspector-form");
-    if (!form) return;
-    form.oninput = () => {
-      const fd = new FormData(form);
-      const s = sections[selected];
-      s.variant = String(fd.get("variant"));
-      s.enabled = fd.get("enabled") === "1";
-      for (const [k, v] of fd.entries()) {
-        if (["variant", "enabled"].includes(k)) continue;
-        if (k.startsWith("settings.")) setNested(s.settings, k.slice(9), v);
-      }
-      document.querySelector("#cms-status").textContent = "Cambios sin guardar";
-      updatePreview();
-    };
-    form.querySelectorAll("[data-color-target]").forEach(
-      (picker) =>
-        (picker.oninput = () => {
-          form.elements[picker.dataset.colorTarget].value = picker.value;
-          form.dispatchEvent(new Event("input"));
-        }),
-    );
-    const upload = form.querySelector("[data-cms-image]");
-    if (upload)
-      upload.onchange = async () => {
-        if (!upload.files[0]) return;
-        const fd = new FormData();
-        fd.append("file", upload.files[0]);
-        upload.disabled = true;
-        try {
-          const result = await api("/api/admin/upload/image", {
-            method: "POST",
-            body: fd,
-          });
-          form.elements["settings.imageUrl"].value = result.url;
-          form.dispatchEvent(new Event("input"));
-          toast(
-            "Imagen subida. Guarda el borrador para conservarla.",
-            "success",
-          );
-        } catch (err) {
-          toast(err.message, "error");
-        } finally {
-          upload.disabled = false;
-        }
-      };
-  };
-  const bindDrag = () => {
-    let from = null;
-    document.querySelectorAll(".cms-block").forEach((el) => {
-      el.ondragstart = () => {
-        from = Number(el.dataset.index);
-        el.classList.add("dragging");
-      };
-      el.ondragend = () => el.classList.remove("dragging");
-      el.ondragover = (e) => e.preventDefault();
-      el.ondrop = (e) => {
-        e.preventDefault();
-        const to = Number(el.dataset.index);
-        if (from === null || from === to) return;
-        const [item] = sections.splice(from, 1);
-        sections.splice(to, 0, item);
-        selected = to;
-        render();
-      };
-    });
-  };
-  const save = async () => {
-    try {
-      const r = await api("/api/admin/cms/home/draft", {
-        method: "PUT",
-        body: {
-          sections: sections.map((s, i) => ({
-            section_key: s.section_key,
-            section_type: s.section_type,
-            variant: s.variant,
-            enabled: s.enabled,
-            settings: s.settings,
-          })),
-        },
-      });
-      sections = r.sections;
-      toast("Borrador guardado.", "success");
-      render();
-    } catch (err) {
-      throw err;
-    }
-  };
-  const publish = async () => {
-    if (!confirm("¿Publicar este borrador en el sitio?")) return;
-    try {
-      await save();
-      await api("/api/admin/cms/home/publish", { method: "POST", body: {} });
-      toast("Inicio publicado.", "success");
-      location.reload();
-    } catch (err) {
-      toast(err.message, "error");
-    }
-  };
-  const preview = async () => {
-    try {
-      await save();
-      window.open("/?preview=1", "_blank", "noopener");
-    } catch (err) {
-      toast(err.message, "error");
-    }
-  };
-  const addSection = () => {
-    const m = modal(
-      "Añadir sección",
-      `<div class="field"><label for="new-section-type">Tipo</label><select id="new-section-type"><option value="hero">Hero</option><option value="featured_courses">Cursos destacados</option><option value="stats">Estadísticas</option><option value="process">Cómo funciona</option><option value="about">Nosotros</option><option value="locations">Sedes</option><option value="testimonials">Testimonios</option><option value="cta">CTA</option><option value="rich_text">Texto</option><option value="footer">Pie de página</option></select></div>`,
-      `<button class="btn btn--secondary" data-modal-close2>Cancelar</button><button class="btn" id="confirm-section">Añadir</button>`,
-    );
-    m.root.querySelector("[data-modal-close2]").onclick = m.close;
-    m.root.querySelector("#confirm-section").onclick = () => {
-      const type = m.root.querySelector("#new-section-type").value;
-      sections.push(defaultSection(type, sections.length));
-      selected = sections.length - 1;
-      m.close();
-      render();
-    };
-  };
-  render();
+  await mountCms(shell, inspector, defaultSection, sectionLabel);
 }
 function sectionLabel(t) {
   return (
     {
+      faq: "Preguntas frecuentes",
+      gallery: "Galería",
+      team: "Equipo docente",
       hero: "Hero",
       featured_courses: "Cursos destacados",
       stats: "Estadísticas",
