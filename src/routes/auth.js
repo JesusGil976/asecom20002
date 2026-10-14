@@ -142,7 +142,10 @@ function createAuthRoutes({ db, auth, audit }) {
                 "SELECT value FROM site_settings WHERE key='academy_name'",
               )
               .get()?.value || "AcademiaVE",
-          resetUrl: `${baseUrl(req)}/reset-password?token=${encodeURIComponent(token)}`,
+          resetUrl: new URL(
+            `/reset-password?token=${encodeURIComponent(token)}`,
+            baseUrl(req),
+          ).href,
         });
       } catch (error) {
         db.prepare("DELETE FROM password_reset_tokens WHERE token_hash=?").run(
