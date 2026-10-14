@@ -17,6 +17,13 @@ import {
 const main = () => document.querySelector("#main");
 export function setMain(html) {
   document.querySelector("#site-footer").hidden = false;
+  document.title = state.site?.academy_name || "AcademiaVE";
+  document
+    .querySelector('meta[name="description"]')
+    ?.setAttribute(
+      "content",
+      state.site?.tagline || "Formación online práctica.",
+    );
   main().innerHTML = html;
   main().focus({ preventScroll: true });
   window.scrollTo({ top: 0, behavior: "instant" });
@@ -88,6 +95,15 @@ export async function courseView(slug) {
   setMain(
     `<section class="course-detail-hero"><div class="container course-detail-grid"><div><div class="eyebrow">${esc(course.category)}</div><h1>${esc(course.name)}</h1><p class="lead course-detail-description">${esc(course.long_description || course.description)}</p><div class="cluster">${badge(course.level, "primary")}${badge(`${course.duration_hours || 0} h`)}${badge(`${course.lesson_count} clases`)}</div></div><aside class="course-detail-card">${course.cover_image_url ? `<img class="image-preview" src="${esc(course.cover_image_url)}" alt="">` : ""}<h2>${money(course.price)}</h2>${enrolled ? `<a class="btn" data-link href="/aula/${esc(course.slug)}">Entrar al aula</a>` : state.user ? `<a class="btn" data-link href="/pago?course=${encodeURIComponent(course.slug)}">Inscribirme</a>` : `<a class="btn" data-link href="/login?next=${encodeURIComponent(`/curso/${course.slug}`)}">Iniciar sesión para inscribirme</a>`}<p class="muted">Pago Móvil sujeto a verificación administrativa.</p></aside></div></section>${video ? sectionWrap(`<div class="classroom-player"><iframe src="${esc(video)}" title="Presentación de ${esc(course.name)}" allowfullscreen></iframe></div>`) : ""}${sectionWrap(`<div class="section-head"><div><div class="eyebrow">Programa</div><h2>Contenido del curso</h2></div></div><div class="lesson-list">${lessons.map((l, i) => `<div class="lesson-row"><div><strong>${i + 1}. ${esc(l.title)}</strong><p class="muted">${esc(l.description)}</p></div>${l.is_free ? `<button class="btn btn--small btn--secondary" data-preview="${l.id}">Vista previa</button>` : badge("Incluida")}</div>`).join("")}</div>`)}`,
   );
+  document.title =
+    course.seo_title ||
+    `${course.name} | ${state.site.academy_name || "AcademiaVE"}`;
+  document
+    .querySelector('meta[name="description"]')
+    ?.setAttribute(
+      "content",
+      course.seo_description || course.description || "",
+    );
   document.querySelectorAll("[data-preview]").forEach((btn) =>
     btn.addEventListener("click", async () => {
       try {
