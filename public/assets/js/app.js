@@ -174,6 +174,23 @@ async function route() {
   document.querySelector("#main-nav")?.classList.remove("open");
   document.querySelector("#menu-btn")?.setAttribute("aria-expanded", "false");
   document.querySelector("#menu-btn")?.setAttribute("aria-label", "Abrir menú");
+  // Las secciones existen solo después de terminar la carga de la vista.
+  scrollToHash();
+}
+function scrollToHash() {
+  if (!location.hash) return;
+  let id;
+  try {
+    id = decodeURIComponent(location.hash.slice(1));
+  } catch {
+    return;
+  }
+  document.getElementById(id)?.scrollIntoView({
+    behavior: matchMedia("(prefers-reduced-motion: reduce)").matches
+      ? "instant"
+      : "smooth",
+    block: "start",
+  });
 }
 document.addEventListener("click", (e) => {
   const link = e.target.closest("a[data-link]");
@@ -191,16 +208,9 @@ document.addEventListener("click", (e) => {
   e.preventDefault();
   history.pushState({}, "", url.pathname + url.search + url.hash);
   route();
-  if (url.hash)
-    setTimeout(
-      () =>
-        document
-          .getElementById(decodeURIComponent(url.hash.slice(1)))
-          ?.scrollIntoView({ behavior: "smooth" }),
-      50,
-    );
 });
 window.addEventListener("popstate", route);
+window.addEventListener("hashchange", scrollToHash);
 const controlObserver = new MutationObserver(() => enhanceControls());
 controlObserver.observe(document.querySelector("#main"), {
   childList: true,
